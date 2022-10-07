@@ -1,0 +1,35 @@
+# https://docs.microsoft.com/en-us/powershell/module/pki/new-selfsignedcertificate
+
+# Creates two certificate files that can be imported to any computer
+# a password protected *.pfx including the private key
+# and a *.cer containing the public key only
+# Temporary used certificate stores are cleaned up after files creation
+# to use the code just copy the block below to a powershell console
+# -----------------------------------------------------------------
+$subject  = "testy"				# edit certificate subject
+$notafter = "2030-12-31"		# edit certificate valid until
+$filepath = "C:\temp\testy"		# edit certificate filepath without extension 
+$password = Read-Host -Prompt "Enter Password to protect private key" -AsSecureString
+$cert = New-SelfSignedCertificate -KeyExportPolicy Exportable -Subject $subject -NotAfter $notafter -CertStoreLocation "cert:\CurrentUser\My"
+$thumbprint = $cert.Thumbprint
+Export-PfxCertificate -Cert $cert -FilePath "$filepath.pfx" -Password $password
+Export-Certificate -Cert $cert -FilePath "$filepath.cer"
+Get-ChildItem -Path 'cert:\CurrentUser' -Recurse | Where-Object { $_.Thumbprint -eq $thumbprint } | ForEach-Object { remove-item -Path $_.PSPath -DeleteKey }
+
+
+
+# Creates a certificate in the My-Folder of CurrentUser or LocalMachine only
+# There is no file creation, and the private key is not exportable
+# to use the code just copy the block below to a powershell console (for LocalMachine run as Admin)
+# -------------------------------------------------------------------------------------------------
+# create a certificate in current user (pk not exportable)
+$subject  = "goggi.sec"			# edit certificate subject
+$notafter = "2030-12-31"		# edit certificate valid until
+$cert = New-SelfSignedCertificate -KeyExportPolicy NonExportable -Subject $subject -NotAfter $notafter -CertStoreLocation "cert:\CurrentUser\My"
+
+
+
+# To remove a certificate by thumbprint from any folder within a store like CurrentUser or LocalMachine
+# Added certificates trail around in other than My/Personal but also in CA/Intermediate Certification Authorities
+# ---------------------------------------------------------------------------------------------------------------
+Get-ChildItem -Path 'cert:\CurrentUser' -Recurse | Where-Object { $_.Thumbprint -eq "19e502634f56106d35e5d9655f5ddc050f633842" } | ForEach-Object { remove-item -Path $_.PSPath -DeleteKey }
